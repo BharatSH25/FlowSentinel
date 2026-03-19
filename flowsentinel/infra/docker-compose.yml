@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  flowsentinel-engine:
+    build:
+      context: ../engine
+    environment:
+      LISTEN_ADDR: ":8080"
+      POSTGRES_DSN: ${ENGINE_POSTGRES_DSN}
+      REDIS_ADDR: "redis:6379"
+      RULES_REFRESH_SECONDS: "30"
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - "8080:8080"
+
+  flowsentinel-admin:
+    build:
+      context: ../admin
+    environment:
+      DATABASE_URL: ${ADMIN_DATABASE_URL}
+    depends_on:
+      - postgres
+    ports:
+      - "8001:8001"
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  nginx:
+    image: nginx:1.27
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8088:80"
+    depends_on:
+      - flowsentinel-engine
+      - flowsentinel-admin
+
+volumes:
+  postgres_data:
+  grafana_data:
+
