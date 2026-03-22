@@ -19,7 +19,7 @@ import (
 	"flowsentinel/engine/metrics"
 	"flowsentinel/engine/store"
 )
-
+// Change the structures
 type config struct {
 	ListenAddr          string
 	PostgresDSN         string
