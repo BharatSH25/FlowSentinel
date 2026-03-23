@@ -34,9 +34,10 @@ func NewRedisSlidingWindow(client *redis.Client, redisErrorsTotal prometheus.Cou
 func (l *RedisSlidingWindow) Redis() *redis.Client { return l.client }
 
 // Check implements the required Redis approach:
+// Checks approved
 // Key: flowsentinel:{client_id}:{resource}:{window_bucket}
 // - INCR counter
-// - EXPIRE if new key
+// - EXPIRE if new key chnages
 // - Return current count vs limit (caller compares)
 func (l *RedisSlidingWindow) Check(ctx context.Context, clientID, resource string, limit, windowSeconds int64) (count int64, resetTimeUnix int64, err error) {
 	if windowSeconds <= 0 {
