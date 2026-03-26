@@ -1,5 +1,5 @@
 package handler
-// Handlers should be 
+
 import (
 	"encoding/json"
 	"log/slog"
