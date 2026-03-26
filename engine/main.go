@@ -47,7 +47,7 @@ func envInt(key string, def int) (int, error) {
 	}
 	return i, nil
 }
-
+// Config chnages handling 
 func loadConfig() (config, error) {
 	var cfg config
 	cfg.ListenAddr = envString("LISTEN_ADDR", ":8080")
