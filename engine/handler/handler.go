@@ -46,7 +46,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
-
+// hii this is go
 func (h *Handler) Check(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	cid := CorrelationIDFromContext(r.Context())
