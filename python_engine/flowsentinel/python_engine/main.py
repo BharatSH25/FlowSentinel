@@ -46,12 +46,26 @@ REDIS_ERRORS_TOTAL = Counter(
     "Total number of Redis errors during limiter checks.",
 )
 
-LUA_FIXED_WINDOW = """
-local current = redis.call("INCR", KEYS[1])
-if current == 1 then
-  redis.call("EXPIRE", KEYS[1], ARGV[1])
+LUA_SLIDING_WINDOW = """
+local key = KEYS[1]
+local now_ms = tonumber(ARGV[1])
+local window_ms = tonumber(ARGV[2])
+local member = ARGV[3]
+
+redis.call("ZREMRANGEBYSCORE", key, 0, now_ms - window_ms)
+redis.call("ZADD", key, now_ms, member)
+
+local count = redis.call("ZCARD", key)
+local oldest = redis.call("ZRANGE", key, 0, 0, "WITHSCORES")
+
+redis.call("PEXPIRE", key, window_ms)
+
+local reset_ms = now_ms + window_ms
+if oldest[2] ~= nil then
+  reset_ms = tonumber(oldest[2]) + window_ms
 end
-return current
+
+return {count, reset_ms}
 """
 
 
@@ -222,26 +236,26 @@ class AuditWriter:
             )
 
 
-class RedisFixedWindowLimiter:
+class RedisSlidingWindowLimiter:
     def __init__(self, client: redis.Redis) -> None:
         self._client = client
-        self._script = self._client.register_script(LUA_FIXED_WINDOW)
+        self._script = self._client.register_script(LUA_SLIDING_WINDOW)
 
     async def check(self, client_id: str, resource: str, window_seconds: int) -> tuple[int, int]:
         if window_seconds <= 0:
             raise ValueError("window_seconds must be > 0")
 
-        now = int(time.time())
-        bucket = now // window_seconds
-        key = f"flowsentinel:{client_id}:{resource}:{bucket}"
-        reset_time = (bucket + 1) * window_seconds
+        now_ms = int(time.time() * 1000)
+        window_ms = window_seconds * 1000
+        member = f"{now_ms}:{uuid.uuid4().hex}"
+        key = f"flowsentinel:sliding:{client_id}:{resource}"
 
         try:
-            count = await self._script(keys=[key], args=[window_seconds])
+            count, reset_ms = await self._script(keys=[key], args=[now_ms, window_ms, member])
         except Exception:
             REDIS_ERRORS_TOTAL.inc()
             raise
-        return int(count), reset_time
+        return int(count), int(reset_ms // 1000)
 
     async def health(self) -> tuple[bool, str | None]:
         try:
@@ -283,7 +297,7 @@ async def lifespan(app: FastAPI):
 
     rule_cache = RuleCache(pg_pool, settings.rules_refresh_seconds)
     await rule_cache.start()
-    limiter = RedisFixedWindowLimiter(redis_client)
+    limiter = RedisSlidingWindowLimiter(redis_client)
     audit_writer = AuditWriter(pg_pool)
     stop_event = asyncio.Event()
 
