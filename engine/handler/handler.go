@@ -11,6 +11,8 @@ import (
 	"flowsentinel/engine/store"
 )
 
+// this is struct type 
+
 type Handler struct {
 	logger      *slog.Logger
 	rules       *store.RuleCache
