@@ -25,6 +25,7 @@ Go Engine also writes audit logs → PostgreSQL
 ## Services (local)
 
 - Engine (Go): `http://localhost:8080` (or via nginx `http://localhost:8088`)
+- Python Engine: `http://localhost:8002`
 - Admin (FastAPI): `http://localhost:8001` (or via nginx `http://localhost:8088`)
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3000`
@@ -38,6 +39,12 @@ Go Engine also writes audit logs → PostgreSQL
   - If no matching rule exists: `allowed=true`, `remaining_quota=-1`, `reset_time=0`.
 - `GET /health` — checks Redis + PostgreSQL.
 - `GET /metrics` — Prometheus metrics.
+
+### Python Engine
+
+- `POST /check` — same behavior as the Go engine, exposed on port `8002`
+- `GET /health` — checks Redis + PostgreSQL
+- `GET /metrics` — Prometheus metrics
 
 ### Admin
 
@@ -89,4 +96,3 @@ High-level steps:
    - Engine can reach Redis (ElastiCache) and PostgreSQL.
    - Admin can reach PostgreSQL.
 4) Configure ALB listener rules to route `/check` and `/health` to the engine and `/rules` and `/audit` to the admin.
-

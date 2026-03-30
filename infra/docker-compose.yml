@@ -30,6 +30,20 @@ services:
     ports:
       - "8080:8080"
 
+  flowsentinel-python-engine:
+    build:
+      context: ../python_engine
+    environment:
+      LISTEN_PORT: "8002"
+      POSTGRES_DSN: ${ENGINE_POSTGRES_DSN}
+      REDIS_ADDR: "redis:6379"
+      RULES_REFRESH_SECONDS: "30"
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - "8002:8002"
+
   flowsentinel-admin:
     build:
       context: ../admin
@@ -74,4 +88,3 @@ services:
 volumes:
   postgres_data:
   grafana_data:
-
