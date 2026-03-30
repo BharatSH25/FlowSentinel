@@ -85,14 +85,20 @@ docker compose --env-file .env up --build
 ## AWS ECS Fargate Deployment (target)
 
 Artifacts:
-- Engine Dockerfile: `flowsentinel/engine/Dockerfile`
+- Python Engine Dockerfile: `flowsentinel/python_engine/Dockerfile`
 - Admin Dockerfile: `flowsentinel/admin/Dockerfile`
 - ECS task definitions: `flowsentinel/infra/ecs-task-definition.json` (contains two task definitions in a JSON array)
 
 High-level steps:
-1) Build and push images to ECR: `flowsentinel-engine` and `flowsentinel-admin`.
-2) Store `POSTGRES_DSN` (engine) and `DATABASE_URL` (admin) in SSM Parameter Store or Secrets Manager.
+1) Build and push images to ECR: `flowsentinel-python-engine` and `flowsentinel-admin`.
+2) Store `POSTGRES_DSN` and `REDIS_PASSWORD` for the Python engine, plus `DATABASE_URL` for the admin API, in SSM Parameter Store or Secrets Manager.
 3) Register the task definitions, create ECS services behind an ALB, and attach security groups so:
-   - Engine can reach Redis (ElastiCache) and PostgreSQL.
+   - Python engine can reach Redis (ElastiCache) and PostgreSQL.
    - Admin can reach PostgreSQL.
-4) Configure ALB listener rules to route `/check` and `/health` to the engine and `/rules` and `/audit` to the admin.
+4) Configure ALB listener rules to route `/check` and `/health` to the Python engine on port `8002`, and `/rules` and `/audit` to the admin.
+
+Python engine ECS notes:
+- Container port: `8002`
+- Required env vars: `LISTEN_PORT`, `REDIS_ADDR`, `REDIS_DB`, `RULES_REFRESH_SECONDS`
+- Required secrets: `POSTGRES_DSN`, `REDIS_PASSWORD` if your Redis deployment uses auth
+- Recommended starting task size: `512` CPU / `1024` MiB memory

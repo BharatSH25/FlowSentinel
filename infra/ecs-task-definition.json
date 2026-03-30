@@ -1,40 +1,42 @@
 [
   {
-    "family": "flowsentinel-engine",
+    "family": "flowsentinel-python-engine",
     "networkMode": "awsvpc",
     "requiresCompatibilities": ["FARGATE"],
-    "cpu": "256",
-    "memory": "512",
+    "cpu": "512",
+    "memory": "1024",
     "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ecsTaskExecutionRole",
     "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/flowsentinelTaskRole",
     "containerDefinitions": [
       {
-        "name": "flowsentinel-engine",
-        "image": "<ECR_REPO>/flowsentinel-engine:<TAG>",
+        "name": "flowsentinel-python-engine",
+        "image": "<ECR_REPO>/flowsentinel-python-engine:<TAG>",
         "essential": true,
-        "portMappings": [{ "containerPort": 8080, "protocol": "tcp" }],
+        "portMappings": [{ "containerPort": 8002, "protocol": "tcp" }],
         "environment": [
-          { "name": "LISTEN_ADDR", "value": ":8080" },
+          { "name": "LISTEN_PORT", "value": "8002" },
           { "name": "REDIS_ADDR", "value": "<REDIS_ENDPOINT>:6379" },
+          { "name": "REDIS_DB", "value": "0" },
           { "name": "RULES_REFRESH_SECONDS", "value": "30" }
         ],
         "secrets": [
-          { "name": "POSTGRES_DSN", "valueFrom": "<SSM_OR_SECRETS_MANAGER_ARN_FOR_POSTGRES_DSN>" }
+          { "name": "POSTGRES_DSN", "valueFrom": "<SSM_OR_SECRETS_MANAGER_ARN_FOR_POSTGRES_DSN>" },
+          { "name": "REDIS_PASSWORD", "valueFrom": "<SSM_OR_SECRETS_MANAGER_ARN_FOR_REDIS_PASSWORD>" }
         ],
         "logConfiguration": {
           "logDriver": "awslogs",
           "options": {
-            "awslogs-group": "/ecs/flowsentinel-engine",
+            "awslogs-group": "/ecs/flowsentinel-python-engine",
             "awslogs-region": "<REGION>",
             "awslogs-stream-prefix": "ecs"
           }
         },
         "healthCheck": {
-          "command": ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"],
+          "command": ["CMD-SHELL", "wget -qO- http://localhost:8002/health || exit 1"],
           "interval": 30,
           "timeout": 5,
           "retries": 3,
-          "startPeriod": 10
+          "startPeriod": 20
         }
       }
     ]
@@ -75,4 +77,3 @@
     ]
   }
 ]
-
