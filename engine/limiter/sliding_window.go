@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 )
-
+// Under sliding window 
 const luaSlidingWindow = `
 local current = redis.call("INCR", KEYS[1])
 if current == 1 then
