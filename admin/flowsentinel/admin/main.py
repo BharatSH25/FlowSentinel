@@ -12,7 +12,7 @@ from flowsentinel.admin.routes.audit import router as audit_router
 from flowsentinel.admin.routes.health import router as health_router
 from flowsentinel.admin.routes.rules import router as rules_router
 
-
+#Logging Issue resolved
 def configure_logging() -> None:
     structlog.configure(
         processors=[
